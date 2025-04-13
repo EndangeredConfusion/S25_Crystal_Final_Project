@@ -149,13 +149,13 @@ def descritize_image_GPU(BGR_image):
 class ImgProcessor(Node):
     def __init__(self):
         super().__init__('img_processor')
-        ### Uncomment if using image, comment out otherwise
+        ### Uncomment if not using camera, comment out otherwise
         # self.timer = self.create_timer(1.0, self.process_image)  # Run every second change rate in the future for real time
         ###
         self.get_logger().info("Image processor node started!")
         self.CUDA = torch.cuda.is_available()
         self.counts_pub = self.create_publisher(Int32MultiArray, 'color_counts', 10)
-        ### Comment out if using image, uncomment otherwise
+        ### Comment out if not using camera, uncomment otherwise
         self.process_camera_feed()
         ###
 
