@@ -80,7 +80,7 @@ pip3 install .
 source install/setup.bash
 
 # Run the node (update the name if you have a specific entry point)
-ros2 run color_reader img_processor_node
+ros2 run ColorReader img_processor
 
 # In a seperate terminal
 ros2 topic echo /color_counts
