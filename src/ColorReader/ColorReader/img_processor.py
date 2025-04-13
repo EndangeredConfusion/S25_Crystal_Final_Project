@@ -112,7 +112,7 @@ def descritize_image_CPU(BGR_image):
     [[r,g,b], [r,g,b], [r,g,b], ...]
     '''
     #output 1
-    output_image = img_with_values.reshape(h, w, 3)
+    output_image = img_with_values.reshape(h, w, 3).astype(np.uint8)
 
     #output 2
     counts = np.bincount(nearest_indicies, minlength=len(Colors))
@@ -149,13 +149,49 @@ def descritize_image_GPU(BGR_image):
 class ImgProcessor(Node):
     def __init__(self):
         super().__init__('img_processor')
-        self.timer = self.create_timer(1.0, self.process_image)  # Run every second change rate in the future for real time
+        # self.timer = self.create_timer(1.0, self.process_image)  # Run every second change rate in the future for real time
         self.get_logger().info("Image processor node started!")
         self.CUDA = torch.cuda.is_available()
         self.counts_pub = self.create_publisher(Int32MultiArray, 'color_counts', 10)
+        self.process_camera_feed()
 
+    def process_camera_feed(self):
+        # Open the default camera
+        cap = cv.VideoCapture(0)
 
+        # Check if the camera opened successfully
+        if not cap.isOpened():
+            print("Cannot open camera")
+            exit()
+
+        while True:
+            # Capture frame-by-frame
+            ret, frame = cap.read()
+
+            # If frame is read correctly, ret is True
+            if not ret:
+                print("Can't receive frame (stream end?). Exiting ...")
+                break
+
+            # Process frame
+            if self.CUDA:
+                img, counts = descritize_image_GPU(frame)
+            else:
+                img, counts = descritize_image_CPU(frame)
+            
+            # Display the resulting frame
+            cv.imshow('Camera Feed', img)
+
+            # Press 'q' to exit
+            if cv.waitKey(1) == ord('q'):
+                break
+
+        # When everything is done, release the capture
+        cap.release()
+        cv.destroyAllWindows()
+    
     def process_image(self):
+        
         img_path = '/camera_shared/frame.jpg'
         if not os.path.exists(img_path):
             self.get_logger().warn("Image file not found")
