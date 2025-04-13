@@ -5,6 +5,19 @@
 - Because I'm on Macos and docker and camera don't play nice the current node reads images from a mounted directory
 - `~/camera_shared/frame.jpg` if you want to test on an image before camera functionality is added you can add the image to that folder, and you will get an output `/camera_shared/discretized.jpg`.
 
+## TODO
+- Custom message for color/counts (smth like this)
+```
+ColorHistogram.msg
+string[] color_labels
+int32[] color_counts
+```
+- Interface with light bar to display the colors
+- Sample at higher rate for real time processing
+- Add color list voice command
+- ...
+
+
 ## Setup & Build Instructions
 
 ### Requirements
