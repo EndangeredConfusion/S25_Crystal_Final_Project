@@ -1,0 +1,26 @@
+# ROS 2 build and install artifacts
+build/
+install/
+log/
+
+# CMake and colcon metadata
+CMakeFiles/
+cmake_install.cmake
+Makefile
+colcon.meta
+colcon.pkg
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VSCode settings
+.vscode/
+
+# Dev container settings
+.devcontainer/
+
+# Other system files
+.DS_Store
