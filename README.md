@@ -52,6 +52,10 @@ colcon build
 
 # Source again
 source install/setup.bash
+
+# After you build and source the project you should be able to do install the Python dependencies (torch might take a while)
+cd src/ColorReader
+pip3 install .
 ```
 
 ---
