@@ -86,4 +86,5 @@ ros2 topic echo /color_counts
 ### Contributors
 
 - Kaeshev Alapati (@EndangeredConfusion)
+- Marilla Bongiovanni (@bongim5)
 - Add your names
