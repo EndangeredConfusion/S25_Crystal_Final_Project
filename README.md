@@ -87,4 +87,5 @@ ros2 topic echo /color_counts
 
 - Kaeshev Alapati (@EndangeredConfusion)
 - Marilla Bongiovanni (@bongim5)
+- Eric Carson (@carsoe2)
 - Add your names
