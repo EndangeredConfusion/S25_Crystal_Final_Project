@@ -11,7 +11,7 @@ from std_msgs.msg import Int32MultiArray
 class Colors(enum.Enum):
     BLACK = 0
     WHITE = 1
-    GREY = 2
+    # GREY = 2
     RED = 3
     ORANGE = 4
     YELLOW = 5
@@ -25,7 +25,7 @@ label_indices = np.array(range(len(Colors)))
 reference_RGB_colors = {
     Colors.BLACK: (0, 0, 0),
     Colors.WHITE: (255, 255, 255),
-    Colors.GREY: (128, 128, 128),
+    # Colors.GREY: (128, 128, 128),
     Colors.RED: (255, 0, 0),
     Colors.ORANGE: (255, 165, 0),
     Colors.YELLOW: (255, 255, 0),
@@ -36,7 +36,7 @@ reference_RGB_colors = {
 reference_BGR_colors = {
     Colors.BLACK: (0, 0, 0),
 	Colors.WHITE: (255, 255, 255),
-	Colors.GREY: (128, 128, 128),
+	# Colors.GREY: (128, 128, 128),
 	Colors.RED: (0, 0, 255),
 	Colors.ORANGE: (0, 165, 255),
 	Colors.YELLOW: (0, 255, 255),
