@@ -10,7 +10,8 @@ import webcolors
 
 
 # Define the basic web color names (you can adjust the selection as needed)
-web_color_names = list(webcolors.HTML4_NAMES_TO_HEX.keys())
+web_color_names = webcolors.names()
+print(len(web_color_names))
 
 # Convert web color names to RGB
 web_colors_rgb = np.array([webcolors.name_to_rgb(color_name) for color_name in web_color_names])
@@ -107,6 +108,7 @@ class ImgProcessor(Node):
     def process_camera_feed(self):
         # Open the default camera
         cap = cv.VideoCapture(0)
+        cap.set(cv.CAP_PROP_FPS, 10)
 
         # Check if the camera opened successfully
         if not cap.isOpened():
