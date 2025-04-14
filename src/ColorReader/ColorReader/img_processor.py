@@ -57,17 +57,7 @@ ref_lab = {
 for label,color_val in ref_lab.items():
     print(f"\t{label}: {str(color_val).replace('. ', ', ').replace('.]', '],')}")
 '''
-# precomputed_CIELAB_values_dict = {
-# 	Colors.BLACK: [  0, 128, 128],
-# 	Colors.WHITE: [255, 128, 128],
-# 	Colors.GREY: [137, 128, 128],
-# 	Colors.RED: [136, 208, 195],
-# 	Colors.ORANGE: [191, 152, 207],
-# 	Colors.YELLOW: [248, 106, 223],
-# 	Colors.GREEN: [224,  42, 211],
-# 	Colors.BLUE: [ 82, 207,  20],
-# 	Colors.PURPLE: [ 76, 187,  91],
-# }
+
 precomputed_CIELAB_values = np.array([
     cv.cvtColor(
         np.uint8([[reference_BGR_colors[label]]]),  # this is BGR now
@@ -75,7 +65,6 @@ precomputed_CIELAB_values = np.array([
     ).astype(np.float32)[0, 0]
     for label in color_labels
 ])
-# precomputed_CIELAB_values = np.array([precomputed_CIELAB_values_dict[color] for color in color_labels])
 
 def descritize_image_CPU(BGR_image):
     CEILAB_pixels = cv.cvtColor(BGR_image, cv.COLOR_BGR2LAB).astype(np.float32)
@@ -151,13 +140,49 @@ class ImgProcessor(Node):
         super().__init__('img_processor')
         ### Uncomment if not using camera, comment out otherwise
         # self.timer = self.create_timer(1.0, self.process_image)  # Run every second change rate in the future for real time
-        ###
+
         self.get_logger().info("Image processor node started!")
-        self.CUDA = torch.cuda.is_available()
+        
         self.counts_pub = self.create_publisher(Int32MultiArray, 'color_counts', 10)
+
+        self.CUDA = torch.cuda.is_available()
+
+        self.declare_parameter("frame_rate", 60)
+
+        frame_rate = self.get_parameter('frame_rate').get_parameter_value().double_value
+
+        self.frame_period = 1/frame_rate
+        self.get_logger().info(f"Image processor started with frame rate: {frame_rate} FPS")
+
+        self.cap = cv.VideoCapture(0)
+        if not self.cap.isOpened():
+            self.get_logger().error("Cannot open camera")
+            exit()
+        
+        self.timer = self.create_timer(self.frame_period, self.process_frame)
         ### Comment out if not using camera, uncomment otherwise
         self.process_camera_feed()
-        ###
+
+    def process_frame(self):
+        ret, frame = self.cap.read()
+
+        if not ret:
+            self.get_logger().error("Image not retrieved!")
+            return
+        
+        if self.CUDA:
+            img, counts = descritize_image_GPU(frame)
+        else:
+            img, counts = descritize_image_CPU(frame)         
+
+        cv.imshow("Processed Feed", img)
+
+        msg = Int32MultiArray()
+        msg.data = counts.tolist()
+        self.counts_pub.publish(msg)
+        self.get_logger().info("Published color count array.")
+
+        
 
     def process_camera_feed(self):
         # Open the default camera
