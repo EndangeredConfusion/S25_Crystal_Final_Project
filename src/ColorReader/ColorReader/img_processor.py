@@ -11,7 +11,6 @@ import webcolors
 
 # Define the basic web color names (you can adjust the selection as needed)
 web_color_names = webcolors.names()
-print(len(web_color_names))
 
 # Convert web color names to RGB
 web_colors_rgb = np.array([webcolors.name_to_rgb(color_name) for color_name in web_color_names])
