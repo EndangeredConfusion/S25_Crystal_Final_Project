@@ -6,61 +6,10 @@ import numpy as np
 import os
 from sklearn.neighbors import KDTree
 import torch
+from std_msgs.msg import Int32MultiArray
 import webcolors
 
 
-<<<<<<< HEAD
-class Colors(enum.Enum):
-    BLACK = 0
-    WHITE = 1
-    GREY = 2
-    RED = 3
-    ORANGE = 4
-    YELLOW = 5
-    GREEN = 6
-    BLUE = 7
-    PURPLE = 8
-color_labels = np.array(list(Colors))
-label_indices = np.array(range(len(Colors)))
-
-
-reference_RGB_colors = {
-    Colors.BLACK: (0, 0, 0),
-    Colors.WHITE: (255, 255, 255),
-    Colors.GREY: (128, 128, 128),
-    Colors.RED: (255, 0, 0),
-    Colors.ORANGE: (255, 165, 0),
-    Colors.YELLOW: (255, 255, 0),
-    Colors.GREEN: (0, 255, 0),
-    Colors.BLUE: (0, 0, 255),
-    Colors.PURPLE: (128, 0, 128)}
-
-reference_BGR_colors = {
-    Colors.BLACK: (0, 0, 0),
-	Colors.WHITE: (255, 255, 255),
-	Colors.GREY: (128, 128, 128),
-	Colors.RED: (0, 0, 255),
-	Colors.ORANGE: (0, 165, 255),
-	Colors.YELLOW: (0, 255, 255),
-	Colors.GREEN: (0, 255, 0),
-	Colors.BLUE: (255, 0, 0),
-	Colors.PURPLE: (128, 0, 128)
-}
-color_values = np.array([reference_BGR_colors[label] for label in color_labels])
-
-''' Code to precompute values (low precision for now)
-ref_lab = {
-    label: cv.cvtColor(
-        np.uint8([[rgb]]),
-        cv.COLOR_BGR2LAB
-    ).astype(np.float32)[0, 0]
-    for label, rgb in reference_BGR_colors.items()
-}
-for label,color_val in ref_lab.items():
-    print(f"\t{label}: {str(color_val).replace('. ', ', ').replace('.]', '],')}")
-'''
-
-=======
 # Define the basic web color names (you can adjust the selection as needed)
 web_color_names = webcolors.names()
 
@@ -76,7 +25,6 @@ reference_BGR_colors = {color_name: webcolors.name_to_rgb(color_name) for color_
 reference_BGR_colors = {k: (v[2], v[1], v[0]) for k, v in reference_BGR_colors.items()}  # Convert RGB to BGR
 
 # Precompute the CIELAB values for the selected web colors
->>>>>>> 1e6d0a3539f32416ddba391901f0d613c5c090bf
 precomputed_CIELAB_values = np.array([
     cv.cvtColor(
         np.uint8([[reference_BGR_colors[label]]]),  # BGR values
@@ -84,8 +32,6 @@ precomputed_CIELAB_values = np.array([
     ).astype(np.float32)[0, 0]
     for label in color_names
 ])
-<<<<<<< HEAD
-=======
 
 # Precompute KDTree for fast nearest neighbor search
 color_tree = KDTree(precomputed_CIELAB_values)
@@ -95,7 +41,6 @@ color_names = np.array(color_names)
 
 # Predefined color values for comparison (in BGR format)
 color_values = np.array([reference_BGR_colors[label] for label in color_names])
->>>>>>> 1e6d0a3539f32416ddba391901f0d613c5c090bf
 
 def descritize_image_CPU(BGR_image):
     CEILAB_pixels = cv.cvtColor(BGR_image, cv.COLOR_BGR2LAB).astype(np.float32)
@@ -114,10 +59,10 @@ def descritize_image_CPU(BGR_image):
     output_image = img_with_values.reshape(h, w, 3).astype(np.uint8)
 
     # Count the occurrences of each color
-    # counts = np.bincount(nearest_indices, minlength=len(color_names))
+    counts = np.bincount(nearest_indices.flatten(), minlength=len(color_names))
 
     # return output_image, counts
-    return output_image, []
+    return output_image, counts
 
 
 def descritize_image_GPU(BGR_image):
@@ -149,31 +94,34 @@ def descritize_image_GPU(BGR_image):
 
 class ImgProcessor(Node):
     def __init__(self):
-        super().__init__('img_processor')
-        ### Uncomment if not using camera, comment out otherwise
-        # self.timer = self.create_timer(1.0, self.process_image)  # Run every second change rate in the future for real time
-
+        super().__init__('img_processor')        
         self.get_logger().info("Image processor node started!")
         
         self.counts_pub = self.create_publisher(Int32MultiArray, 'color_counts', 10)
-
+        self.declare_parameter("frame_rate", 60.0)
         self.CUDA = torch.cuda.is_available()
 
-        self.declare_parameter("frame_rate", 60)
+        # Select Functionality 
+        camera = 0
+        non_blocking_version = 1
 
-        frame_rate = self.get_parameter('frame_rate').get_parameter_value().double_value
+        if camera:
+            frame_rate = self.get_parameter('frame_rate').get_parameter_value().double_value
+            self.frame_period = 1/frame_rate
+            self.get_logger().info(f"Image processor started with frame rate: {frame_rate} FPS")
+            self.cap = cv.VideoCapture(0)
+            if not self.cap.isOpened():
+                self.get_logger().error("Cannot open camera")
+                exit()
 
-        self.frame_period = 1/frame_rate
-        self.get_logger().info(f"Image processor started with frame rate: {frame_rate} FPS")
+            if non_blocking_version:
+                self.timer = self.create_timer(self.frame_period, self.process_frame)
+            else:
+                self.process_camera_feed()
 
-        self.cap = cv.VideoCapture(0)
-        if not self.cap.isOpened():
-            self.get_logger().error("Cannot open camera")
-            exit()
-        
-        self.timer = self.create_timer(self.frame_period, self.process_frame)
-        ### Comment out if not using camera, uncomment otherwise
-        self.process_camera_feed()
+        else:
+            self.timer = self.create_timer(1.0, self.process_image)  # Run every second change rate in the future for real time
+
 
     def process_frame(self):
         ret, frame = self.cap.read()
@@ -194,12 +142,10 @@ class ImgProcessor(Node):
         self.counts_pub.publish(msg)
         self.get_logger().info("Published color count array.")
 
-        
 
     def process_camera_feed(self):
         # Open the default camera
         cap = cv.VideoCapture(0)
-        cap.set(cv.CAP_PROP_FPS, 10)
 
         # Check if the camera opened successfully
         if not cap.isOpened():
@@ -232,6 +178,7 @@ class ImgProcessor(Node):
         cap.release()
         cv.destroyAllWindows()
     
+
     def process_image(self):
         
         img_path = '/camera_shared/frame.jpg'
