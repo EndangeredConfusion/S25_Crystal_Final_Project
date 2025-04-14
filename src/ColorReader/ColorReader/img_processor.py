@@ -1,39 +1,45 @@
 import rclpy
 from rclpy.node import Node
-import numpy as np
+from std_msgs.msg import Int32MultiArray
 import cv2 as cv
-from matplotlib import colors as mcolors
+import numpy as np
+import os
 from sklearn.neighbors import KDTree
 import torch
-from std_msgs.msg import Int32MultiArray
+import webcolors
 
 
-# Get all the predefined color names in Matplotlib
-color_names = list(mcolors.CSS4_COLORS.keys())
+# Define the basic web color names (you can adjust the selection as needed)
+web_color_names = list(webcolors.HTML4_NAMES_TO_HEX.keys())
 
-# Convert the color names to their RGB values
-reference_RGB_colors = {name: mcolors.to_rgb(name) for name in color_names}
+# Convert web color names to RGB
+web_colors_rgb = np.array([webcolors.name_to_rgb(color_name) for color_name in web_color_names])
 
-# Convert RGB to BGR (since OpenCV uses BGR format)
-reference_BGR_colors = {name: tuple(int(c * 255) for c in mcolors.to_rgb(name)) for name in color_names}
+# Prepare your color labels as enum or simple list (to use as identifiers)
+color_names = np.array(web_color_names)
+label_indices = np.array(range(len(web_color_names)))
 
-# Convert reference colors to LAB for comparison
+# Convert web RGB to BGR (for OpenCV compatibility)
+reference_BGR_colors = {color_name: webcolors.name_to_rgb(color_name) for color_name in web_color_names}
+reference_BGR_colors = {k: (v[2], v[1], v[0]) for k, v in reference_BGR_colors.items()}  # Convert RGB to BGR
+
+# Precompute the CIELAB values for the selected web colors
 precomputed_CIELAB_values = np.array([
     cv.cvtColor(
-        np.uint8([[reference_BGR_colors[name]]]),  # BGR format for OpenCV
+        np.uint8([[reference_BGR_colors[label]]]),  # BGR values
         cv.COLOR_BGR2LAB
     ).astype(np.float32)[0, 0]
-    for name in color_names
+    for label in color_names
 ])
 
 # Precompute KDTree for fast nearest neighbor search
 color_tree = KDTree(precomputed_CIELAB_values)
 
 # Use the same color labels but derived from CSS4 color names
-color_labels = np.array(color_names)
+color_names = np.array(color_names)
 
 # Predefined color values for comparison (in BGR format)
-color_values = np.array([reference_BGR_colors[label] for label in color_labels])
+color_values = np.array([reference_BGR_colors[label] for label in color_names])
 
 def descritize_image_CPU(BGR_image):
     CEILAB_pixels = cv.cvtColor(BGR_image, cv.COLOR_BGR2LAB).astype(np.float32)
@@ -41,7 +47,7 @@ def descritize_image_CPU(BGR_image):
 
     # Reshape the image for vectorized processing
     CEILAB_image = CEILAB_pixels.reshape(-1, 3)
-    
+
     # Nearest neighbor search with KDTree
     _, nearest_indices = color_tree.query(CEILAB_image, k=1)
 
@@ -52,9 +58,10 @@ def descritize_image_CPU(BGR_image):
     output_image = img_with_values.reshape(h, w, 3).astype(np.uint8)
 
     # Count the occurrences of each color
-    counts = np.bincount(nearest_indices, minlength=len(color_names))
+    # counts = np.bincount(nearest_indices, minlength=len(color_names))
 
-    return output_image, counts
+    # return output_image, counts
+    return output_image, []
 
 
 def descritize_image_GPU(BGR_image):
