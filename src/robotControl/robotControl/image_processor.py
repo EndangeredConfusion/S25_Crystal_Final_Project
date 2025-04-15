@@ -7,6 +7,9 @@ import os
 from sklearn.neighbors import KDTree
 import torch
 import webcolors
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+
 
 
 web_color_names = webcolors.names()  
