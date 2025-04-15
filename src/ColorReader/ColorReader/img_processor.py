@@ -176,11 +176,11 @@ class ImgProcessor(Node):
             else:
                 img, counts = descritize_image_CPU(frame)
 
-                gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+            gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
             # SLAM
             if self.mode == "slam":
-                if self.self.prev_frame is not None:
+                if self.prev_frame is not None:
                     kp1, kp2, matches = slam_methods.detect_and_match_features(self.prev_frame, gray)
                     R, t = slam_methods.estimate_motion(kp1, kp2, matches, self.K)
                     
@@ -190,7 +190,7 @@ class ImgProcessor(Node):
 
                         # Draw simple trajectory dot (for visual debugging)
                         x, z = int(self.t_f[0]) + 300, int(self.t_f[2]) + 100
-                        cv.circle(frame, (x, z), 3, (0, 0, 255), -1)
+                        cv.circle(img, (x, z), 3, (0, 0, 255), -1)
 
             self.prev_frame = gray
 
