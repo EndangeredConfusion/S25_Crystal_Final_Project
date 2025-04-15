@@ -1,4 +1,5 @@
 from setuptools import setup
+from setuptools import find_packages
 import os
 from glob import glob
 
@@ -11,13 +12,11 @@ setup(
     data_files=[
 
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
-
         ('share/' + package_name, ['package.xml']),
-
         (os.path.join('share',package_name,'launch'),
 	 glob(os.path.join('launch','*launch.[pxy][yma]*')))
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'numpy', 'torch', 'opencv-python', 'scikit-learn', 'webcolors'],
     zip_safe=True,
     maintainer='Chacrica Pagadala',
     maintainer_email='pagadc@rpi.edu',
@@ -26,8 +25,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'image_processor = robotControl.nodes.image_processor:main',
-            'robot_controller = robotControl.nodes.robot_controller:main',
         ],
     },
 )
