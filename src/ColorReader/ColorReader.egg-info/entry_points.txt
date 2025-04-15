@@ -1,0 +1,3 @@
+[console_scripts]
+img_processor = ColorReader.img_processor:main
+
