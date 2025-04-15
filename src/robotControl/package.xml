@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>ros2_robot_control</name>
+  <name>robotControl</name>
   <description>Robot control using colored signal detection</description>
   
   <buildtool_depend>ament_python</buildtool_depend>
