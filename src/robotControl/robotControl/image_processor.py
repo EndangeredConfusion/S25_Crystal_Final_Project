@@ -149,10 +149,6 @@ class image_processor(Node):
             self.command_pub.publish(out_msg)
             self.get_logger().info(f"Published command: {command}")
 
-        # Optionally show the processed image for debugging
-        cv.imshow("Processed Feed", processed_img)
-        cv.waitKey(1)
-
 def main(args=None):
     rclpy.init(args=args)
     node = image_processor()
