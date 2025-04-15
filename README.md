@@ -83,11 +83,12 @@ source install/setup.bash
 # Run the node (update the name if you have a specific entry point)
 # <type> should either be the value "image", "video", or "slam"
 # Something else or nothing will default to video mode
-ros2 run ColorReader img_processor <type>
+ros2 run ColorReader img_processor --ros-args -p mode:=<type>
+
 # Examples:
-ros2 run ColorReader img_processor image
-ros2 run ColorReader img_processor video
-ros2 run ColorReader img_processor slam
+ros2 run ColorReader img_processor --ros-args -p mode:=image
+ros2 run ColorReader img_processor --ros-args -p mode:=video
+ros2 run ColorReader img_processor --ros-args -p mode:=slam
 # Defaults to video mode
 ros2 run ColorReader img_processor
 

@@ -93,9 +93,13 @@ def descritize_image_GPU(BGR_image):
 
 
 class ImgProcessor(Node):
-    def __init__(self, mode="video"):
-        super().__init__('img_processor')        
+    def __init__(self):
+        super().__init__('img_processor')
         self.get_logger().info("Image processor node started!")
+
+        self.declare_parameter("mode", "video")  # default mode is 'video'
+        mode = self.get_parameter("mode").get_parameter_value().string_value
+        self.mode = mode
         
         self.counts_pub = self.create_publisher(Int32MultiArray, 'color_counts', 10)
         self.declare_parameter("frame_rate", 60.0)
@@ -258,13 +262,7 @@ def estimate_motion(kp1, kp2, matches, K):
 
 def main(args=None):
     rclpy.init(args=args)
-    print("ARGS:", args)
-    if args and "slam" in args:
-        node = ImgProcessor(mode="slam")
-    elif args and "image" in args:
-        node = ImgProcessor(mode="image")
-    else: # Default video only mode
-        node = ImgProcessor()
+    node = ImgProcessor()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
