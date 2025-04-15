@@ -15,6 +15,7 @@ int32[] color_counts
 - Add (maybe 60fps) sampling rate and verification to real time video feed.
 - Interface with light bar to display the colors
 - Add color list voice command
+- Add color-based SLAM mapping
 - ...
 
 
@@ -80,7 +81,9 @@ pip3 install .
 source install/setup.bash
 
 # Run the node (update the name if you have a specific entry point)
-ros2 run ColorReader img_processor
+# <type> should either be the value image, "video", or "slam"
+# Something else or nothing will default to video mode
+ros2 run ColorReader img_processor <type>
 
 # In a seperate terminal
 ros2 topic echo /color_counts

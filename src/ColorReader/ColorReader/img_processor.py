@@ -9,6 +9,7 @@ import torch
 from std_msgs.msg import Int32MultiArray
 import webcolors
 
+import slam_methods
 
 # Define the basic web color names (you can adjust the selection as needed)
 web_color_names = webcolors.names()
@@ -93,7 +94,7 @@ def descritize_image_GPU(BGR_image):
 
 
 class ImgProcessor(Node):
-    def __init__(self):
+    def __init__(self, mode="video"):
         super().__init__('img_processor')        
         self.get_logger().info("Image processor node started!")
         
@@ -101,8 +102,16 @@ class ImgProcessor(Node):
         self.declare_parameter("frame_rate", 60.0)
         self.CUDA = torch.cuda.is_available()
 
+        # Slam parameter initialization
+        self.mode = mode
+        if mode == "slam":
+            self.prev_frame = None
+            self.R_f = np.eye(3)  # Full rotation
+            self.t_f = np.zeros((3, 1))  # Full translation
+            self.K = np.array([[640, 0, 320], [0, 480, 240], [0, 0, 1]])
+
         # Select Functionality 
-        camera = 0
+        camera = mode != "image"
         non_blocking_version = 1
 
         if camera:
@@ -166,6 +175,25 @@ class ImgProcessor(Node):
                 img, counts = descritize_image_GPU(frame)
             else:
                 img, counts = descritize_image_CPU(frame)
+
+                gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+
+            # SLAM
+            if self.mode == "slam":
+                if self.self.prev_frame is not None:
+                    kp1, kp2, matches = slam_methods.detect_and_match_features(self.prev_frame, gray)
+                    R, t = slam_methods.estimate_motion(kp1, kp2, matches, self.K)
+                    
+                    if R is not None and t is not None:
+                        self.t_f += self.R_f @ t
+                        self.R_f = R @ self.R_f
+
+                        # Draw simple trajectory dot (for visual debugging)
+                        x, z = int(self.t_f[0]) + 300, int(self.t_f[2]) + 100
+                        cv.circle(frame, (x, z), 3, (0, 0, 255), -1)
+
+            self.prev_frame = gray
+
             
             # Display the resulting frame
             cv.imshow('Camera Feed', img)
@@ -208,7 +236,12 @@ class ImgProcessor(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ImgProcessor()
+    if "slam" in args:
+        node = ImgProcessor(mode="slam")
+    elif "image" in args:
+        node = ImgProcessor(mode="image")
+    else: # Default video only mode
+        node = ImgProcessor()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
