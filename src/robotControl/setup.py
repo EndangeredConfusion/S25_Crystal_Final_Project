@@ -11,7 +11,7 @@ setup(
         # This installs the package.xml
         ('share/' + package_name, ['package.xml']),
         # Include launch files in the installation
-        ('share/' + package_name + '/launch', ['launch/robot_control.launch.py']),
+        ('share/' + package_name + '/launch', ['launch/robotControl.launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
