@@ -11,20 +11,15 @@
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
-=======
-  <description>Robot control using colored signal detection</description>
-  <maintainer email="pagadc@rpi.edu">root</maintainer>
-  <license>TODO: License declaration</license>
->>>>>>> b54b6fbdc7986ccf1af7904b48f7435fb61eb38b
-
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
   
   <exec_depend>numpy</exec_depend>
   <exec_depend>torch</exec_depend>
   <exec_depend>opencv-python</exec_depend>
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>scikit-learn</depend>
+  <depend>webcolors</depend>
 
   <export>
     <build_type>ament_python</build_type>
