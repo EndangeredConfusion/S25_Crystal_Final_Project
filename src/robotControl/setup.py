@@ -25,11 +25,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-<<<<<<< HEAD
             'image_processor = robotControl.image_processor:main',
             'robot_controller = robotControl.robot_controller:main',
-=======
->>>>>>> b54b6fbdc7986ccf1af7904b48f7435fb61eb38b
         ],
     },
 )

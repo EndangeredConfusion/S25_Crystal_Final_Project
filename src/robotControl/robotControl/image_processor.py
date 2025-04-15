@@ -7,7 +7,7 @@ import os
 from sklearn.neighbors import KDTree
 import torch
 import webcolors
-import slam_methods 
+
 
 web_color_names = webcolors.names()  
 color_names = np.array(web_color_names)
@@ -114,7 +114,7 @@ def decide_command(BGR_image, counts):
     else:
         return None
 
-class ImageProcessor(Node):
+class image_processor(Node):
     def __init__(self):
         super().__init__('image_processor')
         self.get_logger().info("Image processor node started!")
@@ -152,7 +152,7 @@ class ImageProcessor(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ImageProcessor()
+    node = image_processor()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
