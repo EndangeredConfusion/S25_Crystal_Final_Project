@@ -106,7 +106,6 @@ class ImgProcessor(Node):
         self.CUDA = torch.cuda.is_available()
 
         # Slam parameter initialization
-        self.mode = mode
         if mode == "slam":
             self.prev_frame = None
             self.R_f = np.eye(3)  # Full rotation
@@ -115,11 +114,11 @@ class ImgProcessor(Node):
 
         # Select Functionality 
         camera = mode != "image"
-        non_blocking_version = 1
+        non_blocking_version = 0
 
         if camera:
             frame_rate = self.get_parameter('frame_rate').get_parameter_value().double_value
-            self.frame_period = 1/frame_rate
+            self.frame_period = 1.0/frame_rate
             self.get_logger().info(f"Image processor started with frame rate: {frame_rate} FPS")
             self.cap = cv.VideoCapture(0)
             if not self.cap.isOpened():
@@ -177,25 +176,12 @@ class ImgProcessor(Node):
 
 
     def process_camera_feed(self):
-        # Open the default camera
-        cap = cv.VideoCapture(0)
-
-        # Check if the camera opened successfully
-        if not cap.isOpened():
-            print("Cannot open camera")
-            exit()
-
         while True:
             self.process_frame()
 
             # Press 'q' to exit
             if cv.waitKey(1) == ord('q'):
-                break
-
-        # When everything is done, release the capture
-        cap.release()
-        cv.destroyAllWindows()
-    
+                break    
 
     def process_image(self):
         
