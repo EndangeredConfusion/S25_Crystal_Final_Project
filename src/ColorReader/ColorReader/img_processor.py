@@ -115,7 +115,7 @@ class ImgProcessor(Node):
 
         # Select Functionality 
         camera = mode != "image"
-        non_blocking_version = 1
+        non_blocking_version = 0
 
         if camera:
             frame_rate = self.get_parameter('frame_rate').get_parameter_value().double_value
