@@ -97,7 +97,7 @@ class ImgProcessor(Node):
         super().__init__('img_processor')
         self.get_logger().info("Image processor node started!")
 
-        self.declare_parameter("mode", "video")  # default mode is 'video'
+        self.declare_parameter("mode", "video")
         mode = self.get_parameter("mode").get_parameter_value().string_value
         self.mode = mode
         
@@ -173,7 +173,7 @@ class ImgProcessor(Node):
         msg = Int32MultiArray()
         msg.data = counts.tolist()
         self.counts_pub.publish(msg)
-        self.get_logger().info("Published color count array.")
+        # self.get_logger().info("Published color count array.")
 
 
     def process_camera_feed(self):
@@ -250,6 +250,13 @@ def estimate_motion(kp1, kp2, matches, K):
 def main(args=None):
     rclpy.init(args=args)
     node = ImgProcessor()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if hasattr(node, "cap") and node.cap.isOpened():
+            node.cap.release()
+        cv.destroyAllWindows()
+        node.destroy_node()
+        rclpy.shutdown()
