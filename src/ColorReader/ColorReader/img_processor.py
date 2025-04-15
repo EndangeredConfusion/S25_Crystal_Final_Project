@@ -258,9 +258,10 @@ def estimate_motion(kp1, kp2, matches, K):
 
 def main(args=None):
     rclpy.init(args=args)
-    if "slam" in args:
+    print("ARGS:", args)
+    if args and "slam" in args:
         node = ImgProcessor(mode="slam")
-    elif "image" in args:
+    elif args and "image" in args:
         node = ImgProcessor(mode="image")
     else: # Default video only mode
         node = ImgProcessor()
