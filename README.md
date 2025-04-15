@@ -81,9 +81,15 @@ pip3 install .
 source install/setup.bash
 
 # Run the node (update the name if you have a specific entry point)
-# <type> should either be the value image, "video", or "slam"
+# <type> should either be the value "image", "video", or "slam"
 # Something else or nothing will default to video mode
 ros2 run ColorReader img_processor <type>
+# Examples:
+ros2 run ColorReader img_processor image
+ros2 run ColorReader img_processor video
+ros2 run ColorReader img_processor slam
+# Defaults to video mode
+ros2 run ColorReader img_processor
 
 # In a seperate terminal
 ros2 topic echo /color_counts
