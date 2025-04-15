@@ -1,0 +1,17 @@
+package.xml
+setup.cfg
+setup.py
+ColorReader/__init__.py
+ColorReader/img_processor.py
+ColorReader/img_processor_backup.py
+ColorReader.egg-info/PKG-INFO
+ColorReader.egg-info/SOURCES.txt
+ColorReader.egg-info/dependency_links.txt
+ColorReader.egg-info/entry_points.txt
+ColorReader.egg-info/requires.txt
+ColorReader.egg-info/top_level.txt
+ColorReader.egg-info/zip-safe
+resource/ColorReader
+test/test_copyright.py
+test/test_flake8.py
+test/test_pep257.py
