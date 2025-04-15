@@ -17,17 +17,18 @@ setup(
         (os.path.join('share',package_name,'launch'),
 	 glob(os.path.join('launch','*launch.[pxy][yma]*')))
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'numpy', 'torch', 'opencv-python', 'scikit-learn', 'webcolors'],
     zip_safe=True,
-    maintainer='Chacrica Pagadala',
+    maintainer='root',
     maintainer_email='pagadc@rpi.edu',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'image_processor = robotControl.nodes.image_processor:main',
-            'robot_controller = robotControl.nodes.robot_controller:main',
+            'image_processor = robotControl.image_processor:main',
+            'robot_controller = robotControl.robot_controller:main',
         ],
     },
 )
+
