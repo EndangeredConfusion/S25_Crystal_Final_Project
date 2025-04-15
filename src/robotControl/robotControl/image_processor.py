@@ -152,10 +152,7 @@ class ImageProcessor(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    mode = "video"
-    if args and "image" in args:
-        mode = "image"
-    node = ImgProcessor(mode=mode)
+    node = ImageProcessor()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
