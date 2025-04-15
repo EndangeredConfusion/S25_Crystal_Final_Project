@@ -11,7 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'numpy', 'webcolors'],
     zip_safe=True,
     maintainer='root',
     maintainer_email='kaeshev@gmail.com',
@@ -19,7 +19,8 @@ setup(
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': ['set_colors = ColorBarFormatter.set_colors:main',
+        'console_scripts': [
+            'set_colors = ColorBarFormatter.set_colors:main'
         ],
     },
 )
