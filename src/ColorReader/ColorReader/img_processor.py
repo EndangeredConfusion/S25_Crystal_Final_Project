@@ -115,7 +115,7 @@ class ImgProcessor(Node):
 
         # Select Functionality 
         camera = mode != "image"
-        non_blocking_version = 0
+        non_blocking_version = 1
 
         if camera:
             frame_rate = self.get_parameter('frame_rate').get_parameter_value().double_value
@@ -136,18 +136,39 @@ class ImgProcessor(Node):
 
 
     def process_frame(self):
+        # Capture frame-by-frame
         ret, frame = self.cap.read()
 
+        # If frame is read correctly, ret is True
         if not ret:
-            self.get_logger().error("Image not retrieved!")
-            return
-        
+            print("Can't read image")
+
+        # Process frame
         if self.CUDA:
             img, counts = descritize_image_GPU(frame)
         else:
-            img, counts = descritize_image_CPU(frame)         
+            img, counts = descritize_image_CPU(frame)
 
-        cv.imshow("Processed Feed", img)
+
+        # SLAM
+        if self.mode == "slam":
+            gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+            if self.prev_frame is not None:
+                kp1, kp2, matches = detect_and_match_features(self.prev_frame, gray)
+                R, t = estimate_motion(kp1, kp2, matches, self.K)
+                
+                if R is not None and t is not None:
+                    self.t_f += self.R_f @ t
+                    self.R_f = R @ self.R_f
+
+                    # Draw simple trajectory dot (for visual debugging)
+                    x, z = int(self.t_f[0]) + 300, int(self.t_f[2]) + 100
+                    cv.circle(img, (x, z), 3, (0, 0, 255), -1)
+
+            self.prev_frame = gray
+        
+        # Display the resulting frame
+        cv.imshow('Camera Feed', img)
 
         msg = Int32MultiArray()
         msg.data = counts.tolist()
@@ -165,41 +186,7 @@ class ImgProcessor(Node):
             exit()
 
         while True:
-            # Capture frame-by-frame
-            ret, frame = cap.read()
-
-            # If frame is read correctly, ret is True
-            if not ret:
-                print("Can't receive frame (stream end?). Exiting ...")
-                break
-
-            # Process frame
-            if self.CUDA:
-                img, counts = descritize_image_GPU(frame)
-            else:
-                img, counts = descritize_image_CPU(frame)
-
-            gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-
-            # SLAM
-            if self.mode == "slam":
-                if self.prev_frame is not None:
-                    kp1, kp2, matches = detect_and_match_features(self.prev_frame, gray)
-                    R, t = estimate_motion(kp1, kp2, matches, self.K)
-                    
-                    if R is not None and t is not None:
-                        self.t_f += self.R_f @ t
-                        self.R_f = R @ self.R_f
-
-                        # Draw simple trajectory dot (for visual debugging)
-                        x, z = int(self.t_f[0]) + 300, int(self.t_f[2]) + 100
-                        cv.circle(img, (x, z), 3, (0, 0, 255), -1)
-
-            self.prev_frame = gray
-
-            
-            # Display the resulting frame
-            cv.imshow('Camera Feed', img)
+            self.process_frame()
 
             # Press 'q' to exit
             if cv.waitKey(1) == ord('q'):
