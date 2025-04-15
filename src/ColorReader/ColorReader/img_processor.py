@@ -9,7 +9,6 @@ import torch
 from std_msgs.msg import Int32MultiArray
 import webcolors
 
-import slam_methods
 
 # Define the basic web color names (you can adjust the selection as needed)
 web_color_names = webcolors.names()
@@ -181,8 +180,8 @@ class ImgProcessor(Node):
             # SLAM
             if self.mode == "slam":
                 if self.prev_frame is not None:
-                    kp1, kp2, matches = slam_methods.detect_and_match_features(self.prev_frame, gray)
-                    R, t = slam_methods.estimate_motion(kp1, kp2, matches, self.K)
+                    kp1, kp2, matches = detect_and_match_features(self.prev_frame, gray)
+                    R, t = estimate_motion(kp1, kp2, matches, self.K)
                     
                     if R is not None and t is not None:
                         self.t_f += self.R_f @ t
@@ -232,6 +231,29 @@ class ImgProcessor(Node):
         msg.data = counts.tolist()
         self.counts_pub.publish(msg)
         self.get_logger().info("Published color count array.")
+
+def detect_and_match_features(img1, img2):
+    orb = cv.ORB_create(1000)
+    kp1, des1 = orb.detectAndCompute(img1, None)
+    kp2, des2 = orb.detectAndCompute(img2, None)
+
+    bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
+    matches = bf.match(des1, des2)
+    matches = sorted(matches, key=lambda x: x.distance)
+
+    return kp1, kp2, matches
+
+def estimate_motion(kp1, kp2, matches, K):
+    if len(matches) < 8:
+        return None, None
+
+    pts1 = np.float32([kp1[m.queryIdx].pt for m in matches])
+    pts2 = np.float32([kp2[m.trainIdx].pt for m in matches])
+
+    E, mask = cv.findEssentialMat(pts1, pts2, K, method=cv.RANSAC, prob=0.999, threshold=1.0)
+    _, R, t, mask_pose = cv.recoverPose(E, pts1, pts2, K)
+
+    return R, t
 
 
 def main(args=None):
