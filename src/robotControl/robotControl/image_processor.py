@@ -3,35 +3,30 @@ from rclpy.node import Node
 from std_msgs.msg import String
 import cv2 as cv
 import numpy as np
+import os
 from sklearn.neighbors import KDTree
 import torch
 import webcolors
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
-# Get CSS3 colors from webcolors and build a list of color names.
-web_color_names = list(webcolors.CSS3_NAMES_TO_HEX.keys())
+
+
+web_color_names = webcolors.names()  
 color_names = np.array(web_color_names)
 
-# Build reference BGR colors.
-reference_BGR_colors = {}
-for color in web_color_names:
-    rgb = webcolors.hex_to_rgb(webcolors.CSS3_NAMES_TO_HEX[color])
-    # Convert RGB to BGR by reordering.
-    reference_BGR_colors[color] = (rgb.blue, rgb.green, rgb.red)
+reference_BGR_colors = {color_name: webcolors.name_to_rgb(color_name) for color_name in web_color_names}
+reference_BGR_colors = {k: (v[2], v[1], v[0]) for k, v in reference_BGR_colors.items()}
 
-# Precompute CIELAB values for each reference color.
 precomputed_CIELAB_values = np.array([
     cv.cvtColor(np.uint8([[reference_BGR_colors[label]]]), cv.COLOR_BGR2LAB).astype(np.float32)[0, 0]
     for label in color_names
 ])
 
-# Build a KDTree for fast nearest-neighbor queries in LAB space.
 color_tree = KDTree(precomputed_CIELAB_values)
 color_values = np.array([reference_BGR_colors[label] for label in color_names])
 
-def discretize_image_CPU(BGR_image):
-    """Discretize the image on CPU using KDTree in LAB space."""
+def descritize_image_CPU(BGR_image):
     lab_pixels = cv.cvtColor(BGR_image, cv.COLOR_BGR2LAB).astype(np.float32)
     h, w = lab_pixels.shape[:2]
     lab_flat = lab_pixels.reshape(-1, 3)
@@ -41,9 +36,7 @@ def discretize_image_CPU(BGR_image):
     counts = np.bincount(nearest_indices.flatten(), minlength=len(color_names))
     return output_image, counts
 
-def discretize_image_GPU(BGR_image):
-    """Discretize the image using GPU acceleration with PyTorch if available."""
-    # Enhance image contrast slightly.
+def descritize_image_GPU(BGR_image):
     img = cv.convertScaleAbs(BGR_image, alpha=1.5, beta=0)
     img_lab = cv.cvtColor(img, cv.COLOR_BGR2LAB).astype(np.float32)
     h, w = img_lab.shape[:2]
@@ -60,39 +53,44 @@ def discretize_image_GPU(BGR_image):
 
 def detect_arrow_direction(BGR_image):
     """
-    Detect a green arrow and return its direction as 'turn_left' or 'turn_right'.
+    Returns 'turn_left', 'turn_right', or None.
     """
-    # Convert to HSV for robust color segmentation.
+    # Convert to HSV to help isolate green regions
     hsv = cv.cvtColor(BGR_image, cv.COLOR_BGR2HSV)
+    # Define a green mask (you might need to adjust the HSV ranges)
     lower_green = np.array([40, 50, 50])
     upper_green = np.array([80, 255, 255])
     mask = cv.inRange(hsv, lower_green, upper_green)
     
-    # Handle different versions of OpenCV for contour detection.
-    contours_info = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    contours = contours_info[0] if len(contours_info) == 2 else contours_info[1]
-    
+    # Find contours on the mask
+    contours, _ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         if cv.contourArea(cnt) < 1000:
-            continue
+            continue  # Skip small contours
+        # Approximate the contour to simplify its shape
         epsilon = 0.03 * cv.arcLength(cnt, True)
         approx = cv.approxPolyDP(cnt, epsilon, True)
-        # A simplistic approach: if the approximated contour has 7 vertices, assume an arrow.
+        
+        # This is a very simplified check: if the approximated contour has 7 points,
+        # it might be an arrow. You might instead use more advanced shape matching.
         if len(approx) == 7:
+            # Decide arrow direction based on the centroid position relative to image center
             M = cv.moments(cnt)
             if M['m00'] == 0:
                 continue
             cX = int(M['m10'] / M['m00'])
             width = BGR_image.shape[1]
-            return "turn_left" if cX < width // 2 else "turn_right"
+            if cX < width // 2:
+                return "turn_left"
+            else:
+                return "turn_right"
     return None
 
 def decide_command(BGR_image, counts):
-    """
-    Decide which command to send based on the fraction of red, yellow,
-    or green pixels in the image.
-    """
+
     total_pixels = BGR_image.shape[0] * BGR_image.shape[1]
+    
+    # Set thresholds as a fraction of the image area
     red_threshold = 0.15 * total_pixels
     green_threshold = 0.15 * total_pixels
     yellow_threshold = 0.15 * total_pixels
@@ -102,6 +100,7 @@ def decide_command(BGR_image, counts):
         green_index = np.where(color_names == "green")[0][0]
         yellow_index = np.where(color_names == "yellow")[0][0]
     except IndexError:
+        # In case the color is not in the list, default to no command
         return None
 
     if counts[red_index] > red_threshold:
@@ -109,29 +108,27 @@ def decide_command(BGR_image, counts):
     elif counts[yellow_index] > yellow_threshold:
         return "slow"
     elif counts[green_index] > green_threshold:
-        # If there is a significant green area, check for an arrow.
+        # Check if a green arrow is present
         arrow_cmd = detect_arrow_direction(BGR_image)
-        return arrow_cmd if arrow_cmd is not None else "start"
+        if arrow_cmd:
+            return arrow_cmd
+        else:
+            return "start"
     else:
         return None
 
-class ImageProcessor(Node):
+class image_processor(Node):
     def __init__(self):
         super().__init__('image_processor')
         self.get_logger().info("Image processor node started!")
         self.subscription = self.create_subscription(
             Image,
-            '/camera/color/image_raw',
+            '/camera/color/image_raw',  
             self.image_callback,
             10)
-        # Publish commands on the "control_signal" topic.
         self.command_pub = self.create_publisher(String, 'control_signal', 10)
         self.bridge = CvBridge()
         self.CUDA = torch.cuda.is_available()
-        if self.CUDA:
-            self.get_logger().info("CUDA available, using GPU for image processing.")
-        else:
-            self.get_logger().info("CUDA not available, using CPU for image processing.")
 
     def image_callback(self, msg):
         try:
@@ -141,21 +138,20 @@ class ImageProcessor(Node):
             return
 
         if self.CUDA:
-            processed_img, counts = discretize_image_GPU(frame)
+            processed_img, counts = descritize_image_GPU(frame)
         else:
-            processed_img, counts = discretize_image_CPU(frame)
+            processed_img, counts = descritize_image_CPU(frame)
         
-        # Decide on a command based on the processed image.
         command = decide_command(frame, counts)
         if command:
-            msg_out = String()
-            msg_out.data = command
-            self.command_pub.publish(msg_out)
+            out_msg = String()
+            out_msg.data = command
+            self.command_pub.publish(out_msg)
             self.get_logger().info(f"Published command: {command}")
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ImageProcessor()
+    node = image_processor()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
