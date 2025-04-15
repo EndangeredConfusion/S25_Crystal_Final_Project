@@ -114,80 +114,41 @@ def decide_command(BGR_image, counts):
     else:
         return None
 
-class ImgProcessor(Node):
-    def __init__(self, mode="video"):
+class ImageProcessor(Node):
+    def __init__(self):
         super().__init__('image_processor')
         self.get_logger().info("Image processor node started!")
-        # Publisher for control command as a string message
+        self.subscription = self.create_subscription(
+            Image,
+            '/camera/color/image_raw',  
+            self.image_callback,
+            10)
         self.command_pub = self.create_publisher(String, 'control_signal', 10)
+        self.bridge = CvBridge()
         self.CUDA = torch.cuda.is_available()
-        self.declare_parameter("frame_rate", 30.0)
+
+    def image_callback(self, msg):
+        try:
+            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        except CvBridgeError as e:
+            self.get_logger().error("CvBridge error: " + str(e))
+            return
+
+        if self.CUDA:
+            processed_img, counts = descritize_image_GPU(frame)
+        else:
+            processed_img, counts = descritize_image_CPU(frame)
         
-        # Select input source: camera (video) or a static image file
-        camera_mode = (mode != "image")
-        if camera_mode:
-            frame_rate = self.get_parameter('frame_rate').value
-            self.frame_period = 1.0 / frame_rate
-            self.get_logger().info(f"Using camera at {frame_rate} FPS")
-            self.cap = cv.VideoCapture(0)
-            if not self.cap.isOpened():
-                self.get_logger().error("Cannot open camera")
-                exit()
-            # Use a timer to process frames non-blocking
-            self.timer = self.create_timer(self.frame_period, self.process_frame)
-        else:
-            self.timer = self.create_timer(1.0, self.process_image)
-
-    def process_frame(self):
-        ret, frame = self.cap.read()
-        if not ret:
-            self.get_logger().error("Frame not captured!")
-            return
-
-        # Use GPU or CPU version based on availability
-        if self.CUDA:
-            processed_img, counts = descritize_image_GPU(frame)
-        else:
-            processed_img, counts = descritize_image_CPU(frame)
-
-        # Decide control command based on color distribution & arrow detection
         command = decide_command(frame, counts)
         if command:
-            msg = String()
-            msg.data = command
-            self.command_pub.publish(msg)
+            out_msg = String()
+            out_msg.data = command
+            self.command_pub.publish(out_msg)
             self.get_logger().info(f"Published command: {command}")
 
-        # Optionally, display the processed feed for debugging
+        # Optionally show the processed image for debugging
         cv.imshow("Processed Feed", processed_img)
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            self.cap.release()
-            cv.destroyAllWindows()
-
-    def process_image(self):
-        # Static image mode (for testing)
-        img_path = '/camera_shared/frame.jpg'
-        if not os.path.exists(img_path):
-            self.get_logger().warn("Image file not found")
-            return
-
-        frame = cv.imread(img_path)
-        if frame is None:
-            self.get_logger().warn("Failed to read image")
-            return
-
-        if self.CUDA:
-            processed_img, counts = descritize_image_GPU(frame)
-        else:
-            processed_img, counts = descritize_image_CPU(frame)
-
-        command = decide_command(frame, counts)
-        if command:
-            msg = String()
-            msg.data = command
-            self.command_pub.publish(msg)
-            self.get_logger().info(f"Published command: {command}")
-        cv.imwrite('/camera_shared/discretized.jpg', processed_img)
+        cv.waitKey(1)
 
 def main(args=None):
     rclpy.init(args=args)
