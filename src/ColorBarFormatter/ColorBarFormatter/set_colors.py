@@ -27,7 +27,7 @@ def color_callback(count_array: Int32MultiArray):
         g = current_color.green
         b = current_color.blue
 
-        for _ in range(count):
+        for _ in range(int(count)):
             bot.set_colorful_lamps(current_pos, r, g, b)
             current_pos += 1
 
