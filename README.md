@@ -57,6 +57,7 @@ ros2_final_proj/
 # Clone this repository
 git clone https://github.com/EndangeredConfusion/S25_Crystal_Final_Project.git
 cd S25_Crystal_Final_Project
+sudo apt install ros-foxy-rtabmap-ros
 
 # Source your ROS 2 environment
 source /opt/ros/foxy/setup.bash

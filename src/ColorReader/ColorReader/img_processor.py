@@ -1,12 +1,11 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import Int32MultiArray, Image, CameraInfo
 import cv2 as cv
 import numpy as np
 import os
 from sklearn.neighbors import KDTree
 import torch
-from std_msgs.msg import Int32MultiArray
 import webcolors
 
 
@@ -101,9 +100,17 @@ class ImgProcessor(Node):
         mode = self.get_parameter("mode").get_parameter_value().string_value
         self.mode = mode
         
-        self.counts_pub = self.create_publisher(Int32MultiArray, 'color_counts', 10)
         self.declare_parameter("frame_rate", 60.0)
         self.CUDA = torch.cuda.is_available()
+
+        # Subscriptions
+        self.image_sub = self.create_subscription(Image, '/image', self.listener_callback, 10)
+        self.camera_info_sub = self.create_subscription(CameraInfo, '/camera_info', self.camera_info_callback, 10)
+
+        # Publishers
+        self.image_pub = self.create_publisher(Image, '/camera/color/image_raw', 10)
+        self.camera_info_pub = self.create_publisher(CameraInfo, '/camera/color/camera_info', 10)
+        self.counts_pub = self.create_publisher(Int32MultiArray, 'color_counts', 10)
 
         # Slam parameter initialization
         if mode == "slam":
