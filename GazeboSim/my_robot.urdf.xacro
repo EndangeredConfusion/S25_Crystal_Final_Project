@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="my_robot">
+
+  <!-- Constants -->
+  <xacro:property name="body_length" value="0.4" />
+  <xacro:property name="body_width" value="0.2" />
+  <xacro:property name="body_height" value="0.15" />
+  <xacro:property name="wheel_radius" value="0.06" />
+  <xacro:property name="wheel_thickness" value="0.04" />
+
+  <!-- Main chassis -->
+  <link name="chassis">
+    <inertial>
+      <mass value="15"/>
+      <inertia ixx="0.5" ixy="0" ixz="0" iyy="0.5" iyz="0" izz="0.3"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Car roof -->
+  <link name="roof">
+    <inertial>
+      <mass value="2"/>
+      <inertia ixx="0.05" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.03"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="${body_length*0.8} ${body_width*0.8} ${body_height*0.5}"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${body_length*0.8} ${body_width*0.8} ${body_height*0.5}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="roof_joint" type="fixed">
+    <parent link="chassis"/>
+    <child link="roof"/>
+    <origin xyz="0 0 ${body_height/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Wheel macro -->
+  <xacro:macro name="wheel" params="prefix reflect">
+    <link name="${prefix}_wheel">
+      <inertial>
+        <mass value="1.5"/>
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+        </geometry>
+        <material name="dark_gray"/>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+        </geometry>
+      </collision>
+    </link>
+  </xacro:macro>
+
+  <!-- Create wheels -->
+  <xacro:wheel prefix="front_left" reflect="1"/>
+  <xacro:wheel prefix="front_right" reflect="-1"/>
+  <xacro:wheel prefix="rear_left" reflect="1"/>
+  <xacro:wheel prefix="rear_right" reflect="-1"/>
+
+  <!-- Wheel joints -->
+  <xacro:macro name="wheel_joint" params="prefix x y z">
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="chassis"/>
+      <child link="${prefix}_wheel"/>
+      <origin xyz="${x} ${y} ${z}" rpy="1.5708 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:wheel_joint prefix="front_left" 
+    x="${body_length*0.3}" y="${body_width*0.4}" z="-${body_height/2 + wheel_radius}"/>
+  <xacro:wheel_joint prefix="front_right" 
+    x="${body_length*0.3}" y="-${body_width*0.4}" z="-${body_height/2 + wheel_radius}"/>
+  <xacro:wheel_joint prefix="rear_left" 
+    x="-${body_length*0.3}" y="${body_width*0.4}" z="-${body_height/2 + wheel_radius}"/>
+  <xacro:wheel_joint prefix="rear_right" 
+    x="-${body_length*0.3}" y="-${body_width*0.4}" z="-${body_height/2 + wheel_radius}"/>
+
+  <!-- Gazebo plugins and materials -->
+  <gazebo>
+    <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+      <ros>
+        <namespace>/</namespace>
+      </ros>
+      <left_joint>rear_left_wheel_joint</left_joint>
+      <right_joint>rear_right_wheel_joint</right_joint>
+      <wheel_separation>${body_width*0.8}</wheel_separation>
+      <wheel_diameter>${2*wheel_radius}</wheel_diameter>
+      <max_wheel_torque>20</max_wheel_torque>
+      <command_topic>cmd_vel</command_topic>
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>chassis</robot_base_frame>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="chassis">
+    <material>Gazebo/Red</material>
+  </gazebo>
+  <gazebo reference="roof">
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <!-- Front wheel steering (caster) -->
+  <gazebo reference="front_left_wheel">
+    <mu1 value="0.0"/>
+    <mu2 value="0.0"/>
+    <kp value="10000000.0"/>
+    <kd value="1.0"/>
+  </gazebo>
+
+  <gazebo reference="front_right_wheel">
+    <mu1 value="0.0"/>
+    <mu2 value="0.0"/>
+    <kp value="10000000.0"/>
+    <kd value="1.0"/>
+  </gazebo>
+
+</robot>
