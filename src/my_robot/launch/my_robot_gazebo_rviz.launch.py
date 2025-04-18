@@ -36,6 +36,15 @@ def generate_launch_description():
         output='screen',
         parameters=[{'use_sim_time': use_sim_time, 'robot_description': robot_desc}],
         arguments=[urdf])
+    
+    light_switch_node = Node(
+        package='my_robot',
+        executable='sky_light_switcher',
+        name='sky_light_switcher',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}]
+    )
+
         
     # rviz_node = Node(
     #     package='rviz2',
@@ -58,6 +67,7 @@ def generate_launch_description():
         robot_state_publisher_node,
         # rviz_node,
         gazebo_launch,
-        gazebo_robot
+        gazebo_robot,
+        light_switch_node
     ])
 
