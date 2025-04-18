@@ -1,8 +1,8 @@
 import os
 import rclpy
 from rclpy.node import Node
+from geometry_msgs.msg import Twist
 from std_srvs.srv import Empty
-import time
 import subprocess
 
 class RedLightGreenLight(Node):
@@ -30,6 +30,41 @@ class RedLightGreenLight(Node):
         )
 
         subprocess.run(command, shell=True)
+
+        if self.current_color == 'green':
+            self.robot_mover.enable_movement()
+        else:
+            self.robot_mover.disable_movement()
+
+class RobotMover(Node):
+    def __init__(self):
+        super().__init__('robot_mover')
+        self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.timer = self.create_timer(0.1, self.move_in_circle)  # 10 Hz
+        self.green_light_active = False  # You toggle this based on light status
+        self.angular_speed = 0.5
+        self.linear_speed = 0.2
+
+    def move_in_circle(self):
+        if not self.green_light_active:
+            return  # Stand still if not green
+
+        twist = Twist()
+        twist.linear.x = self.linear_speed
+        twist.angular.z = self.angular_speed
+        self.publisher.publish(twist)
+
+    def stop(self):
+        twist = Twist()  # all zeros
+        self.publisher.publish(twist)
+
+    def enable_movement(self):
+        self.green_light_active = True
+
+    def disable_movement(self):
+        self.green_light_active = False
+        self.stop()
+
 
 def main():
     rclpy.init()
