@@ -41,8 +41,7 @@ def generate_launch_description():
         package='my_robot',
         executable='sky_light_switcher',
         name='sky_light_switcher',
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}]
+        output='screen'
     )
 
         

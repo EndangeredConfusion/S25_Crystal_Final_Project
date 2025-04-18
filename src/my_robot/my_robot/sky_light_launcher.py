@@ -1,53 +1,40 @@
-#!/usr/bin/env python3
-
+import os
 import rclpy
 from rclpy.node import Node
-from rcl_interfaces.srv import SetParameters
-from rcl_interfaces.msg import Parameter, ParameterValue
-from rcl_interfaces.msg import ParameterType
+from std_srvs.srv import Empty
 import time
+import subprocess
 
-
-class SkyLightSwitcher(Node):
+class RedLightGreenLight(Node):
     def __init__(self):
-        super().__init__('sky_light_switcher')
-        self.cli = self.create_client(SetParameters, '/gazebo/set_parameters')
-        while not self.cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for /gazebo/set_parameters service...')
+        super().__init__('light_switcher')
+        self.current_color = 'green'
+        self.timer = self.create_timer(5.0, self.switch_light)
+        self.model_path = os.path.expanduser('~/ros2_ws/src/my_robot/models')
 
-        self.green = True
-        self.timer = self.create_timer(5.0, self.toggle_sky)  # toggle every 5 seconds
+    def switch_light(self):
+        # Delete the current light (if it exists)
+        subprocess.run(['ros2', 'service', 'call', '/delete_entity', 'gazebo_msgs/srv/DeleteEntity',
+                        f'{{name: "{self.current_color}_light"}}'], shell=True)
+        time.sleep(0.5)
 
-    def toggle_sky(self):
-        if self.green:
-            self.set_sky_color(0.8, 0.0, 0.0)  # Red
-            self.get_logger().info('🔴 RED LIGHT!')
-        else:
-            self.set_sky_color(0.0, 0.6, 0.0)  # Green
-            self.get_logger().info('🟢 GREEN LIGHT!')
-        self.green = not self.green
+        # Switch color
+        self.current_color = 'red' if self.current_color == 'green' else 'green'
+        model_file = os.path.join(self.model_path, f'{self.current_color}_light', 'model.sdf')
 
-    def set_sky_color(self, r, g, b):
-        req = SetParameters.Request()
-        param = Parameter()
-        param.name = 'background_color'
-        param.value = ParameterValue(
-            type=ParameterType.PARAMETER_STRING,
-            string_value=f"{r} {g} {b} 1.0"
-        )
-        req.parameters.append(param)
-        future = self.cli.call_async(req)
+        # Spawn the new light
+        subprocess.run([
+            'ros2', 'run', 'gazebo_ros', 'spawn_entity.py',
+            '-file', model_file,
+            '-entity', f'{self.current_color}_light',
+            '-x', '0', '-y', '0', '-z', '3'
+        ], shell=True)
 
-        # Optionally wait a little (non-blocking)
-        rclpy.spin_until_future_complete(self, future, timeout_sec=1.0)
-
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = SkyLightSwitcher()
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    node.destroy_node()
+def main():
+    rclpy.init()
+    node = RedLightGreenLight()
+    rclpy.spin(node)
     rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
