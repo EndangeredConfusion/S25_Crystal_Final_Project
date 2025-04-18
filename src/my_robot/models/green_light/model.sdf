@@ -13,8 +13,8 @@
           <ambient>0 1 0 1</ambient>
           <diffuse>0 1 0 1</diffuse>
         </material>
+        <pose>0 0 0.05 0 0 0</pose>
       </visual>
-      <pose>0 0 3 0 0 0</pose>
     </link>
   </model>
 </sdf>
