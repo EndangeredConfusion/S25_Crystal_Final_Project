@@ -27,6 +27,7 @@ glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'sky_light_switcher = my_robot.sky_light_switcher:main'
         ],
     },
 )

@@ -1,26 +1,53 @@
-import rospy
-from gazebo_msgs.srv import SetLightProperties
-from std_msgs.msg import ColorRGBA
+#!/usr/bin/env python3
 
-def set_light(color):
-    rospy.wait_for_service('/gazebo/set_light_properties')
+import rclpy
+from rclpy.node import Node
+from rcl_interfaces.srv import SetParameters
+from rcl_interfaces.msg import Parameter, ParameterValue
+from rcl_interfaces.msg import ParameterType
+import time
+
+
+class SkyLightSwitcher(Node):
+    def __init__(self):
+        super().__init__('sky_light_switcher')
+        self.cli = self.create_client(SetParameters, '/gazebo/set_parameters')
+        while not self.cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for /gazebo/set_parameters service...')
+
+        self.green = True
+        self.timer = self.create_timer(5.0, self.toggle_sky)  # toggle every 5 seconds
+
+    def toggle_sky(self):
+        if self.green:
+            self.set_sky_color(0.8, 0.0, 0.0)  # Red
+            self.get_logger().info('🔴 RED LIGHT!')
+        else:
+            self.set_sky_color(0.0, 0.6, 0.0)  # Green
+            self.get_logger().info('🟢 GREEN LIGHT!')
+        self.green = not self.green
+
+    def set_sky_color(self, r, g, b):
+        req = SetParameters.Request()
+        param = Parameter()
+        param.name = 'background_color'
+        param.value = ParameterValue(
+            type=ParameterType.PARAMETER_STRING,
+            string_value=f"{r} {g} {b} 1.0"
+        )
+        req.parameters.append(param)
+        future = self.cli.call_async(req)
+
+        # Optionally wait a little (non-blocking)
+        rclpy.spin_until_future_complete(self, future, timeout_sec=1.0)
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = SkyLightSwitcher()
     try:
-        set_light = rospy.ServiceProxy('/gazebo/set_light_properties', SetLightProperties)
-        set_light('sun', ColorRGBA(color[0], color[1], color[2], 1.0), 1.0, 1000.0, 1000.0)
-    except rospy.ServiceException as e:
-        rospy.logerr("Service call failed: %s" % e)
-
-def switch_lights():
-    rate = rospy.Rate(0.5)  # every 2 seconds
-    green = (0.0, 1.0, 0.0)
-    red = (1.0, 0.0, 0.0)
-    toggle = True
-    while not rospy.is_shutdown():
-        color = green if toggle else red
-        set_light(color)
-        toggle = not toggle
-        rate.sleep()
-
-if __name__ == '__main__':
-    rospy.init_node('red_green_light_controller')
-    switch_lights()
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    node.destroy_node()
+    rclpy.shutdown()
