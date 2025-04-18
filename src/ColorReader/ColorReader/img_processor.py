@@ -113,11 +113,11 @@ class ImgProcessor(Node):
         self.counts_pub = self.create_publisher(Int32MultiArray, 'color_counts', 10)
 
         # Slam parameter initialization
-        if mode == "slam":
-            self.prev_frame = None
-            self.R_f = np.eye(3)  # Full rotation
-            self.t_f = np.zeros((3, 1))  # Full translation
-            self.K = np.array([[640, 0, 320], [0, 480, 240], [0, 0, 1]])
+        # if mode == "slam":
+        #     self.prev_frame = None
+        #     self.R_f = np.eye(3)  # Full rotation
+        #     self.t_f = np.zeros((3, 1))  # Full translation
+        #     self.K = np.array([[640, 0, 320], [0, 480, 240], [0, 0, 1]])
 
         # Select Functionality 
         camera = mode != "image"
@@ -156,22 +156,22 @@ class ImgProcessor(Node):
             img, counts = descritize_image_CPU(frame)
 
 
-        # SLAM
-        if self.mode == "slam":
-            gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-            if self.prev_frame is not None:
-                kp1, kp2, matches = detect_and_match_features(self.prev_frame, gray)
-                R, t = estimate_motion(kp1, kp2, matches, self.K)
+        # SLAM -- not using
+        # if self.mode == "slam":
+        #     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        #     if self.prev_frame is not None:
+        #         kp1, kp2, matches = detect_and_match_features(self.prev_frame, gray)
+        #         R, t = estimate_motion(kp1, kp2, matches, self.K)
                 
-                if R is not None and t is not None:
-                    self.t_f += self.R_f @ t
-                    self.R_f = R @ self.R_f
+        #         if R is not None and t is not None:
+        #             self.t_f += self.R_f @ t
+        #             self.R_f = R @ self.R_f
 
-                    # Draw simple trajectory dot (for visual debugging)
-                    x, z = int(self.t_f[0]) + 300, int(self.t_f[2]) + 100
-                    cv.circle(img, (x, z), 3, (0, 0, 255), -1)
+        #             # Draw simple trajectory dot (for visual debugging)
+        #             x, z = int(self.t_f[0]) + 300, int(self.t_f[2]) + 100
+        #             cv.circle(img, (x, z), 3, (0, 0, 255), -1)
 
-            self.prev_frame = gray
+        #     self.prev_frame = gray
         
         # Display the resulting frame
         cv.imshow('Camera Feed', img)
@@ -216,28 +216,28 @@ class ImgProcessor(Node):
         self.counts_pub.publish(msg)
         self.get_logger().info("Published color count array.")
 
-def detect_and_match_features(img1, img2):
-    orb = cv.ORB_create(1000)
-    kp1, des1 = orb.detectAndCompute(img1, None)
-    kp2, des2 = orb.detectAndCompute(img2, None)
+# def detect_and_match_features(img1, img2):
+#     orb = cv.ORB_create(1000)
+#     kp1, des1 = orb.detectAndCompute(img1, None)
+#     kp2, des2 = orb.detectAndCompute(img2, None)
 
-    bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
-    matches = bf.match(des1, des2)
-    matches = sorted(matches, key=lambda x: x.distance)
+#     bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
+#     matches = bf.match(des1, des2)
+#     matches = sorted(matches, key=lambda x: x.distance)
 
-    return kp1, kp2, matches
+#     return kp1, kp2, matches
 
-def estimate_motion(kp1, kp2, matches, K):
-    if len(matches) < 8:
-        return None, None
+# def estimate_motion(kp1, kp2, matches, K):
+#     if len(matches) < 8:
+#         return None, None
 
-    pts1 = np.float32([kp1[m.queryIdx].pt for m in matches])
-    pts2 = np.float32([kp2[m.trainIdx].pt for m in matches])
+#     pts1 = np.float32([kp1[m.queryIdx].pt for m in matches])
+#     pts2 = np.float32([kp2[m.trainIdx].pt for m in matches])
 
-    E, mask = cv.findEssentialMat(pts1, pts2, K, method=cv.RANSAC, prob=0.999, threshold=1.0)
-    _, R, t, mask_pose = cv.recoverPose(E, pts1, pts2, K)
+#     E, mask = cv.findEssentialMat(pts1, pts2, K, method=cv.RANSAC, prob=0.999, threshold=1.0)
+#     _, R, t, mask_pose = cv.recoverPose(E, pts1, pts2, K)
 
-    return R, t
+#     return R, t
 
 
 def main(args=None):
