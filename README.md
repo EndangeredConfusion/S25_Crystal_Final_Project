@@ -1,7 +1,11 @@
 # S25_Crystal_Final_Project
 
 ---
-## Important Note
+## Components of this project
+- Implementation on the ROSMASTER-X3
+- Gazebo Simulation: Simulates the ROSMASTER-X3 responding to a stop light
+---
+## Important Note - Implementation on the ROSMASTER-X3
 - Because I'm on Macos and docker and camera don't play nice the current node reads images from a mounted directory
 - `~/camera_shared/frame.jpg` if you want to test on an image before camera functionality is added you can add the image to that folder, and you will get an output `/camera_shared/discretized.jpg`.
 
