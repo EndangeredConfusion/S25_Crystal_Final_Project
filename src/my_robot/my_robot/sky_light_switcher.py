@@ -26,7 +26,7 @@ class RedLightGreenLight(Node):
             f'ros2 run gazebo_ros spawn_entity.py '
             f'-file {model_file} '
             f'-entity {self.current_color}_light '
-            f'-x 0 -y 0 -z 3'
+            f'-x 0 -y 0 -z 0.5'
         )
 
         subprocess.run(command, shell=True)
